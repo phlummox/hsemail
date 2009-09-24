@@ -1,21 +1,13 @@
 module Main (main) where
 
 import Text.ParserCombinators.Parsec ( parse )
-import Text.ParserCombinators.Parsec.Rfc2822
+import Text.ParserCombinators.Parsec.Rfc2822NS
 
 -- Read an Internet message from standard input, parse it,
 -- and return the result.
 
-main :: IO ()
-main = do
-  input <- getContents
-  print $ parse message "<stdin>" (fixEol input)
+parseEmail s = do
+  input <- readFile s
+  print $ parse message "<stdin>" input
   return ()
 
--- Make sure all lines are terminated by CRLF.
-
-fixEol :: String -> String
-fixEol ('\r':'\n':xs)   = '\r' : '\n' : (fixEol xs)
-fixEol ('\n':xs)        = '\r' : '\n' : (fixEol xs)
-fixEol (x:xs)           = x : (fixEol xs)
-fixEol []               = []

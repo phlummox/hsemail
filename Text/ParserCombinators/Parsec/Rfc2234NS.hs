@@ -1,9 +1,9 @@
 {- |
-   Module      :  Text.ParserCombinators.Parsec.Rfc2234
+   Module      :  Text.ParserCombinators.Parsec.Rfc2234NS
    Copyright   :  (c) 2008 Peter Simons
    License     :  BSD3
 
-   Maintainer  :  simons@cryp.to
+   Maintainer  :  jfredett@gmail.com
    Stability   :  provisional
    Portability :  portable
 
@@ -12,9 +12,27 @@
    ABNF\", <http://www.faqs.org/rfcs/rfc2234.html>. The
    terminal called @char@ in the RFC is called 'character'
    here to avoid conflicts with Parsec's 'char' function.
+
+   Addendum for Nonstandard Version:
+   This module deviates from the RFC currently in 
+        * none currently.
+
+   These allowances are subject to change, and should not be
+   used when parsing incoming messages, only for parsing messages
+   that have been stored on disk. The goal of these nonstandard
+   Parsers is to provide a higher probability of parsing _common_
+   Headers (rather than only those explicitly defined in the RFC)
+   as well as allowing for potential oddities / changes that may
+   occur during storage of an email message. These parsers have
+   be rebranded so as not to conflict with the standard parsers
+   available from the excellent 'hsemail' package, upon which
+   this package depends. For patches to this package only (namely
+   'hsemail-ns', patches should be sent to <jfredett@gmail.com>, 
+   for patches to the Proper parsers, you can send them to the
+   original maintainer. 
  -}
 
-module Text.ParserCombinators.Parsec.Rfc2234 where
+module Text.ParserCombinators.Parsec.Rfc2234NS where
 
 import Text.ParserCombinators.Parsec
 import Data.Char ( toUpper, chr, ord )
@@ -48,7 +66,7 @@ manyNtoM n m p
     | n < 0      = return []
     | n > m      = return []
     | n == m     = count n p
-    | n == 0     = do foldr (<|>) (return []) (map (\x -> try $ count x p) (reverse [1..m]))
+    | n == 0     = foldr (<|>) (return []) (map (\x -> try $ count x p) (reverse [1..m]))
     | otherwise  = liftM2 (++) (count n p) (manyNtoM 0 (m-n) p)
 
 -- |Helper function to generate 'Parser'-based instances for
@@ -67,7 +85,7 @@ parsec2read f x  = either (error . show) id (parse f' "" x)
 -- |Match any character of the alphabet.
 
 alpha           :: CharParser st Char
-alpha            = satisfy (\c -> c `elem` (['A'..'Z'] ++ ['a'..'z']))
+alpha            = satisfy (`elem` (['A'..'Z'] ++ ['a'..'z']))
                    <?> "alphabetic character"
 
 -- |Match either \"1\" or \"0\".
@@ -93,11 +111,9 @@ lf               = char '\n'    <?> "linefeed"
 
 -- |Match the Internet newline @\\r\\n@.
 
-crlf            :: CharParser st String
-crlf             = do c <- cr
-                      l <- lf
-                      return [c,l]
-                   <?> "carriage return followed by linefeed"
+crlf             :: CharParser st String
+crlf             = (choice . map try) [cr >> lf, lf >> cr, cr, lf] >>= return . return 
+                <?> "eol sequence"
 
 -- |Match any US-ASCII control character. That is
 -- any character with a decimal value in the range of [0..31,127].
@@ -163,22 +179,22 @@ wsp              = sp <|> htab    <?> "white-space"
 -- |Match a \"quoted pair\". Any characters (excluding CR and
 -- LF) may be quoted.
 
-quoted_pair     :: CharParser st String
-quoted_pair      = do char '\\'
-                      r <- noneOf "\r\n"
-                      return ['\\',r]
-                   <?> "quoted pair"
+quotedPair     :: CharParser st String
+quotedPair      = do char '\\'
+                     r <- noneOf "\r\n"
+                     return ['\\',r]
+               <?> "quoted pair"
 
 -- |Match a quoted string. The specials \"@\\@\" and
 -- \"@\"@\" must be escaped inside a quoted string; CR and
 -- LF are not allowed at all.
 
-quoted_string   :: CharParser st String
-quoted_string    = do dquote
-                      r <- many qcont
-                      dquote
-                      return ("\"" ++ concat r ++ "\"")
+quotedString   :: CharParser st String
+quotedString    = do dquote
+                     r <- many qcont
+                     dquote
+                     return ("\"" ++ concat r ++ "\"")
                    <?> "quoted string"
   where
   qtext = noneOf "\\\"\r\n"
-  qcont = (many1 qtext) <|> (quoted_pair)
+  qcont = many1 qtext <|> quotedPair
