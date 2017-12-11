@@ -14,21 +14,23 @@
    here to avoid conflicts with Parsec's 'char' function.
 
    Addendum for Nonstandard Version:
+
    This module deviates from the RFC currently in 
-        * none currently.
+
+        * Allowing for non-standard line endings.
 
    These allowances are subject to change, and should not be
    used when parsing incoming messages, only for parsing messages
    that have been stored on disk. The goal of these nonstandard
-   Parsers is to provide a higher probability of parsing _common_
-   Headers (rather than only those explicitly defined in the RFC)
+   parsers is to provide a higher probability of parsing /common/
+   headers (rather than only those explicitly defined in the RFC)
    as well as allowing for potential oddities / changes that may
    occur during storage of an email message. These parsers have
    be rebranded so as not to conflict with the standard parsers
    available from the excellent 'hsemail' package, upon which
    this package depends. For patches to this package only (namely
-   'hsemail-ns', patches should be sent to <phlummox2@gmail.com>, 
-   for patches to the Proper parsers, you can send them to the
+   'hsemail-ns'), patches should be sent to <phlummox2@gmail.com>, 
+   for patches to the proper parsers, you can send them to the
    original maintainer. 
  -}
 

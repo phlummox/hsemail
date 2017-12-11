@@ -8,12 +8,13 @@ Maintainer:             phlummox2@gmail.com
 Homepage:               https://github.com/phlummox/hsemail-ns/tree/hsemail-ns
 Category:               Parsing
 Synopsis:               Internet Message Parsers
-Description:            Nonstandard parsers for the syntax defined in RFC2822, forked from hsemail proper. Should not be used for parsing incoming emails, only emails stored on disk.
+Description:            Nonstandard parsers for the syntax defined in RFC2822, forked from hsemail proper - permits lf line-ends in addition to crlf. Should not be used for parsing incoming emails, only emails stored on disk.
 Cabal-Version:          >= 1.8
 Build-Type:             Simple
 
 Extra-Source-Files:     example/message-test.hs
                         example/message-test.input
+                        ChangeLog.md
 
 Source-Repository this
   Type:                 git
