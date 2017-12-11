@@ -1,11 +1,4 @@
-*.hi
-*.o
-/GNUmakefile
-/Setup
-/Setup.lhs
-/_darcs
 /dist
 /docs
 /hsemail-*tar.gz
-/index.html
 .stack-work/

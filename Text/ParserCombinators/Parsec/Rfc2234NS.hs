@@ -1,9 +1,9 @@
 {- |
-   Module      :  Text.ParserCombinators.Parsec.Rfc2234NS
-   Copyright   :  (c) 2008 Peter Simons
+   Module      :  Text.ParserCombinators.Parsec.Rfc2234
+   Copyright   :  (c) 2013 Peter Simons
    License     :  BSD3
 
-   Maintainer  :  jfredett@gmail.com
+   Maintainer  :  phlummox2@gmail.com
    Stability   :  provisional
    Portability :  portable
 
@@ -27,7 +27,7 @@
    be rebranded so as not to conflict with the standard parsers
    available from the excellent 'hsemail' package, upon which
    this package depends. For patches to this package only (namely
-   'hsemail-ns', patches should be sent to <jfredett@gmail.com>, 
+   'hsemail-ns', patches should be sent to <phlummox2@gmail.com>, 
    for patches to the Proper parsers, you can send them to the
    original maintainer. 
  -}
@@ -37,6 +37,9 @@ module Text.ParserCombinators.Parsec.Rfc2234NS where
 import Text.ParserCombinators.Parsec
 import Data.Char ( toUpper, chr, ord )
 import Control.Monad ( liftM2 )
+
+-- Customize hlint ...
+{-# ANN module "HLint: ignore Use camelCase" #-}
 
 ----------------------------------------------------------------------
 -- * Parser Combinators
@@ -85,7 +88,7 @@ parsec2read f x  = either (error . show) id (parse f' "" x)
 -- |Match any character of the alphabet.
 
 alpha           :: CharParser st Char
-alpha            = satisfy (`elem` (['A'..'Z'] ++ ['a'..'z']))
+alpha            = satisfy (\c -> c `elem` (['A'..'Z'] ++ ['a'..'z']))
                    <?> "alphabetic character"
 
 -- |Match either \"1\" or \"0\".
@@ -111,9 +114,18 @@ lf               = char '\n'    <?> "linefeed"
 
 -- |Match the Internet newline @\\r\\n@.
 
-crlf             :: CharParser st String
-crlf             = (choice . map try) [cr >> lf, lf >> cr, cr, lf] >>= return . return 
-                <?> "eol sequence"
+crlf            :: CharParser st String
+crlf             = do c <- cr
+                      l <- lf
+                      return [c,l]
+                   <?> "carriage return followed by linefeed"
+
+-- | Non-standard newline - matches any of crlf, lfcr, cr, lf
+-- (in that order)
+crlfNS          :: CharParser st String
+crlfNS          = (choice . map try) [cr >> lf, lf >> cr, cr, lf] >>= 
+                      return . return 
+                      <?> "eol sequence"
 
 -- |Match any US-ASCII control character. That is
 -- any character with a decimal value in the range of [0..31,127].
@@ -145,7 +157,7 @@ htab             = char '\t'    <?> "horizontal tab"
 lwsp            :: CharParser st String
 lwsp             = do r <- choice
                            [ many1 wsp
-                           , try (liftM2 (++) crlf (many1 wsp))
+                           , try (liftM2 (++) crlfNS (many1 wsp))
                            ]
                       rs <- option [] lwsp
                       return (r ++ rs)
@@ -179,22 +191,22 @@ wsp              = sp <|> htab    <?> "white-space"
 -- |Match a \"quoted pair\". Any characters (excluding CR and
 -- LF) may be quoted.
 
-quotedPair     :: CharParser st String
-quotedPair      = do char '\\'
-                     r <- noneOf "\r\n"
-                     return ['\\',r]
-               <?> "quoted pair"
+quoted_pair     :: CharParser st String
+quoted_pair      = do _ <- char '\\'
+                      r <- noneOf "\r\n"
+                      return ['\\',r]
+                   <?> "quoted pair"
 
 -- |Match a quoted string. The specials \"@\\@\" and
 -- \"@\"@\" must be escaped inside a quoted string; CR and
 -- LF are not allowed at all.
 
-quotedString   :: CharParser st String
-quotedString    = do dquote
-                     r <- many qcont
-                     dquote
-                     return ("\"" ++ concat r ++ "\"")
+quoted_string   :: CharParser st String
+quoted_string    = do _ <- dquote
+                      r <- many qcont
+                      _ <- dquote
+                      return ("\"" ++ concat r ++ "\"")
                    <?> "quoted string"
   where
   qtext = noneOf "\\\"\r\n"
-  qcont = many1 qtext <|> quotedPair
+  qcont = many1 qtext <|> quoted_pair
